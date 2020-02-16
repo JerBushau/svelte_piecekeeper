@@ -100,7 +100,7 @@ SPACES & SPACE CONTAINERS
   padding: 10px 10px 15px;
   box-shadow: 0 5px 15px rgba(68, 68, 68, 0.6);
   min-height: 166px;
-  transition: all 0.1s;
+  /*transition: all 0.1s;*/
   /*dont select text on click*/
   -webkit-touch-callout: none;
   -webkit-user-select: none;

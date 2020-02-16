@@ -1,5 +1,26 @@
 <script>
+import { flip } from 'svelte/animate';
 import logo from '../public/imgs/agricola.png';
+import { quintOut } from 'svelte/easing';
+import { crossfade } from 'svelte/transition';
+
+const [send, receive] = crossfade({
+  duration: d => Math.sqrt(d * 200),
+
+  fallback(node, params) {
+    const style = getComputedStyle(node);
+    const transform = style.transform === 'none' ? '' : style.transform;
+
+    return {
+      duration: 600,
+      easing: quintOut,
+      css: t => `
+        transform: ${transform} scale(${t});
+        opacity: ${t}
+      `
+    };
+  }
+});
 let instructionsActive = false;
 let dropdownActive = false;
 let editing = false;
@@ -205,7 +226,10 @@ const toggleInstructions = () => instructionsActive = !instructionsActive;
   <section class="space-container">
     {#each activeSpaces as sp (sp.id)}
 
-    <div class={ "space " + sp.type }
+    <div in:receive="{{key: sp.id}}"
+         out:send="{{key: sp.id}}"
+         animate:flip="{{duration: 400}}"
+         class={ "space " + sp.type }
          on:click={ (e) => spaceClickHandler(e, sp.id) }>
       {#if editing}
 
