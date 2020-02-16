@@ -1,166 +1,166 @@
 <script>
-import { flip } from 'svelte/animate';
-import logo from '../public/imgs/agricola.png';
-import { quintOut } from 'svelte/easing';
-import { crossfade } from 'svelte/transition';
+  import { round } from './store.js';
+  import logo from '../public/imgs/agricola.png';
+  import { flip } from 'svelte/animate';
+  import { quintOut } from 'svelte/easing';
+  import { fly, crossfade } from 'svelte/transition';
+  // crossfade produces send/receive functions for flip (first, last, invert, play) animation
+  const [send, receive] = crossfade({
+    duration: d => Math.sqrt(d * 200),
 
-const [send, receive] = crossfade({
-  duration: d => Math.sqrt(d * 200),
+    fallback(node, params) {
+      const style = getComputedStyle(node);
+      const transform = style.transform === 'none' ? '' : style.transform;
 
-  fallback(node, params) {
-    const style = getComputedStyle(node);
-    const transform = style.transform === 'none' ? '' : style.transform;
-
-    return {
-      duration: 600,
-      easing: quintOut,
-      css: t => `
-        transform: ${transform} scale(${t});
-        opacity: ${t}
-      `
-    };
-  }
-});
-let instructionsActive = false;
-let dropdownActive = false;
-let editing = false;
-let id = 8;
-const randomOrderSpaces = [
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'sheep', name: 'Sheep' },
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'cow', name: 'Cattle' },
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'boar', name: 'Pig' },
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'stone', name: 'Western Quarry' }
-];
-let activeSpaces = [
-  { id: 0, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'wood', name: 'Copse' },
-  { id: 1, previousAmount: 2, defaultAmount: 2, accumulatedAmount: 2, type: 'wood', name: 'Grove' },
-  { id: 2, previousAmount: 3, defaultAmount: 3, accumulatedAmount: 3, type: 'wood', name: 'Forest' },
-  { id: 3, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'clay', name: 'Clay Pit' },
-  { id: 4, previousAmount: 2, defaultAmount: 2, accumulatedAmount: 2, type: 'clay', name: 'Hollow' },
-  { id: 5, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'reed', name: 'Reed Bank' },
-  { id: 6, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'food', name: 'Fishing' },
-  { id: 7, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'food', name: 'Traveling Players' }
-];
-let roundInfo = {
-  currentRound: 1,
-  currentStage: 1,
-  isHarvestRound: false,
-  message: ''
-};
-const handleAccumulation = e => {
-  const currentRound = e.shiftKey ? (roundInfo.currentRound - 1)
-                                  : (roundInfo.currentRound + 1);
-  if (currentRound >= 15 || currentRound <= -1) return;
-  const harvestRound = isHarvestRound(currentRound);
-  const currentStage = getStage(currentRound);
-  const message = getMessage(currentRound, harvestRound);
-
-
-  activeSpaces = activeSpaces.map(space => {
-    const accumulatedAmount = e.shiftKey
-                            ? (space.accumulatedAmount - space.defaultAmount)
-                            : (space.accumulatedAmount + space.defaultAmount);
-    if (accumulatedAmount <= 0) accumulatedAmount = 0;
-    return {
-      ...space,
-      accumulatedAmount: accumulatedAmount,
-      previousAmount: accumulatedAmount
+      return {
+        duration: 600,
+        easing: quintOut,
+        css: t => `
+          transform: ${transform} scale(${t});
+          opacity: ${t}
+        `
+      };
     }
   });
-  roundInfo = {
-    currentRound: currentRound,
-    currentStage: currentStage,
-    isHarvestRound: harvestRound,
-    message: message
-  };
-};
-const handleAddSpace = (type) => {
-  let model = randomOrderSpaces.find(sp => (type === sp.type));
-  let space = Object.assign({}, model);
-  let count = 1;
-  if (space.type === 'stone') {
-    activeSpaces.forEach(sp => {
-      if (type === sp.type) {
-        count++
-      }
-    });
-  }
-  if (count > 1) space.name = 'Eastern Quarry';
-  if (count > 2) space.name = 'oops...'
-  space.id = id++;
-
-  activeSpaces = [
-    ...activeSpaces,
-    space
+  let instructionsActive = false;
+  let dropdownActive = false;
+  let editing = false;
+  // App state
+  const randomOrderSpaces = [
+    { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'sheep', name: 'Sheep' },
+    { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'cow', name: 'Cattle' },
+    { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'boar', name: 'Pig' },
+    { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'stone', name: 'Western Quarry' }
   ];
-};
-const spaceClickHandler = (e, id) => {
-  const clickedSpace = activeSpaces.find(space => (space.id === id));
-  let amount;
-  console.log(e.target.parentElement.className)
-  if (e.target.parentElement.className === 'editing-options') {
-    return editingOptionsClickHandler(e, id)
-  }
-  if (e.ctrlKey) return toggleEditing();
-  e.shiftKey ? amount = clickedSpace.accumulatedAmount + 1
-             : amount = 0;
+  let activeSpaces = [
+    { id: 0, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'wood', name: 'Copse' },
+    { id: 1, previousAmount: 2, defaultAmount: 2, accumulatedAmount: 2, type: 'wood', name: 'Grove' },
+    { id: 2, previousAmount: 3, defaultAmount: 3, accumulatedAmount: 3, type: 'wood', name: 'Forest' },
+    { id: 3, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'clay', name: 'Clay Pit' },
+    { id: 4, previousAmount: 2, defaultAmount: 2, accumulatedAmount: 2, type: 'clay', name: 'Hollow' },
+    { id: 5, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'reed', name: 'Reed Bank' },
+    { id: 6, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'food', name: 'Fishing' },
+    { id: 7, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'food', name: 'Traveling Players' }
+  ];
+  let roundInfo = {
+    currentRound: $round,
+    currentStage: 1,
+    isHarvestRound: false,
+    message: ''
+  };
+  let id = 8;
+  // App functions
+  const handleAccumulation = e => {
+    const currentRound = e.shiftKey ? (roundInfo.currentRound - 1)
+                                    : (roundInfo.currentRound + 1);
+    if (currentRound >= 15 || currentRound <= -1) return;
+    const harvestRound = isHarvestRound(currentRound);
+    const currentStage = getStage(currentRound);
+    const message = getMessage(currentRound, harvestRound);
 
-  activeSpaces = activeSpaces.map(space => {
-    if (space.id === id) {
+
+    activeSpaces = activeSpaces.map((space) => {
+      const accumulatedAmount = e.shiftKey
+                              ? (space.accumulatedAmount - space.defaultAmount)
+                              : (space.accumulatedAmount + space.defaultAmount);
+      if (accumulatedAmount <= 0) accumulatedAmount = 0;
       return {
         ...space,
-        accumulatedAmount: amount
+        accumulatedAmount: accumulatedAmount,
+        previousAmount: accumulatedAmount
       }
-    }
-    return space
-  })
-};
-const editingOptionsClickHandler = (e, id) => {
-  console.log('edit handle')
-  if (e.target.className === 'delete-button') {
-    return removeSpaceAt(id)
-  } else if (e.target.className === 'prev-value') {
-    activeSpaces = activeSpaces.map(space => {
-      if (space.id === id) {
-        return {
-          ...space,
-          accumulatedAmount: space.previousAmount
+    });
+    roundInfo = {
+      currentRound: currentRound,
+      currentStage: currentStage,
+      isHarvestRound: harvestRound,
+      message: message
+    };
+  };
+  const handleAddSpace = (type) => {
+    let model = randomOrderSpaces.find((sp) => (type === sp.type));
+    let space = Object.assign({}, model);
+    let count = 1;
+    if (space.type === 'stone') {
+      activeSpaces.forEach((sp) => {
+        if (type === sp.type) {
+          count++
         }
+      });
+    }
+    if (count > 1) space.name = 'Eastern Quarry';
+    if (count > 2) space.name = 'oops...'
+    space.id = id++;
+
+    activeSpaces = [
+      ...activeSpaces,
+      space
+    ];
+  };
+  const spaceClickHandler = (e, id) => {
+    const clickedSpace = activeSpaces.find((space) => (space.id === id));
+    const isTargetInEditingOptions = e.target.parentElement.className === 'editing-options';
+    let amount;
+
+    if (isTargetInEditingOptions) {
+      return editingOptionsClickHandler(e, id)
+    }
+    if (e.ctrlKey) return toggleEditing();
+    e.shiftKey ? clickedSpace.accumulatedAmount++
+               : clickedSpace.accumulatedAmount = 0;
+
+    activeSpaces = activeSpaces.map((space) => {
+      if (space.id === id) {
+        return clickedSpace
       }
       return space
-    });
-  }
-};
-const removeSpaceAt = id => activeSpaces = activeSpaces.filter(space => id !== space.id);
-const isHarvestRound = currentRound => {
+    })
+  };
+  const editingOptionsClickHandler = (e, id) => {
+    const isDelete = e.target.className === 'delete-button';
+    const isPrevVal = e.target.className === 'prev-value';
+    if (isDelete) {
+      return removeSpaceAt(id)
+    } else if (isPrevVal) {
+      activeSpaces = activeSpaces.map((space) => {
+        if (space.id === id) {
+          space.accumulatedAmount = space.previousAmount
+          return space
+        }
+        return space
+      });
+    }
+  };
+  const removeSpaceAt = (id) => activeSpaces = activeSpaces.filter((space) => id !== space.id);
+  const isHarvestRound = (currentRound) => {
     const harvestRounds = [4, 7, 9, 11, 13, 14];
 
-  return harvestRounds.some(round =>
-    (round === currentRound))
-};
-const getMessage = (currentRound, isHarvestRound) => {
-  if (isHarvestRound) {
-    return (currentRound === 14) ? 'Last Harvest!'
-                                 : 'Harvest this round!';
-  }
-  return ''
-};
-const getStage = currentRound => {
-  const roundToStageMap = new Map([[11, 5], [9, 4], [7, 3],[4, 2], [0, 1]]);
-
-  for (let [round, stage] of roundToStageMap) {
-    if (currentRound > round) {
-      return (currentRound === 14) ? 6 : stage;
+    return harvestRounds.some((round) => round === currentRound)
+  };
+  const getMessage = (currentRound, isHarvestRound) => {
+    if (isHarvestRound) {
+      return (currentRound === 14) ? 'Last Harvest!'
+                                   : 'Harvest this round!';
     }
-  }
-  return 0
-};
-const toggleDropdown = () => dropdownActive = !dropdownActive;
-const toggleEditing = () => editing = !editing;
-const toggleInstructions = () => instructionsActive = !instructionsActive;
+    return ''
+  };
+  const getStage = (currentRound) => {
+    const roundToStageMap = new Map([[11, 5], [9, 4], [7, 3],[4, 2], [0, 1]]);
+
+    for (let [round, stage] of roundToStageMap) {
+      if (currentRound > round) {
+        return (currentRound === 14) ? 6 : stage;
+      }
+    }
+    return 0
+  };
+  const toggleDropdown = () => dropdownActive = !dropdownActive;
+  const toggleEditing = () => editing = !editing;
+  const toggleInstructions = () => instructionsActive = !instructionsActive;
 </script>
 
 <main class="App wrapper">
+
   <div class={ "instruction-toggle " + (instructionsActive ? 'active' : '' ) }
        on:click={ () => toggleInstructions() } >
     <span class="icon"> { instructionsActive ? 'X' : '?' } </span>
@@ -193,6 +193,7 @@ const toggleInstructions = () => instructionsActive = !instructionsActive;
   </header>
 
   <nav>
+
     <div class={ 'round-info-container ' +
                    (roundInfo.isHarvestRound ? 'alert ' : '') +
                    ((roundInfo.currentRound === 14) ? 'alert-final' : '') }>
@@ -221,10 +222,11 @@ const toggleInstructions = () => instructionsActive = !instructionsActive;
         </div>
       </div>
     </div>
+
   </nav>
 
   <section class="space-container">
-    {#each activeSpaces as sp (sp.id)}
+  {#each activeSpaces as sp (sp.id)}
 
     <div in:receive="{{key: sp.id}}"
          out:send="{{key: sp.id}}"
@@ -233,7 +235,7 @@ const toggleInstructions = () => instructionsActive = !instructionsActive;
          on:click={ (e) => spaceClickHandler(e, sp.id) }>
       {#if editing}
 
-        <div class="editing-options">
+        <div transition:fly="{{x: 50, duration: 200}}" class="editing-options">
           <small class="prev-value">{ sp.previousAmount }</small>
           {#if sp.id > 7}
             <button class="delete-button">&#215;</button>
@@ -245,7 +247,7 @@ const toggleInstructions = () => instructionsActive = !instructionsActive;
       <h3 class="type">{ sp.type }</h3>
     </div>
 
-    {/each}
+  {/each}
   </section>
 
 </main>
