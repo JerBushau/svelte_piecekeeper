@@ -75,7 +75,7 @@ function createActiveSpaces(initialSpaces) {
 }
 
 export const round = createRound(retrieveFromStorage('round') || 0);
-export let id = writable(retrieveFromStorage('id') || 8);
+export const id = writable(retrieveFromStorage('id') || 8);
 export const activeSpaces = createActiveSpaces(retrieveFromStorage('activeSpaces'));
 export const roundInfo = derived(round, ($round) => ({
   stage: getStage($round),
