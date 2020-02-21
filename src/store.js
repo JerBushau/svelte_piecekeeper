@@ -1,15 +1,24 @@
 import { writable, derived } from 'svelte/store';
 
-export const id = writable(8)
+function createRound() {
+  const { subscribe, set, update } = writable(1);
 
-const randomOrderSpaces = [
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'sheep', name: 'Sheep' },
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'cow', name: 'Cattle' },
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'boar', name: 'Pig' },
-  { previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'stone', name: 'Western Quarry' }
-];
+  return {
+    subscribe,
+    increment: () => update(round => round < 14 ? round = round += 1: 14),
+    decrement: () => update(round => round > 0 ? round = round -= 1 : 0)
+  }
+};
 
-function activeSpaces() {
+export const round = createRound();
+
+export const roundInfo = derived(round, ($round) => ({
+  stage: getStage($round),
+  isHarvestRound: getIsHarvestRound($round),
+  message: getMessage($round, getIsHarvestRound($round))
+}));
+
+function createActiveSpaces() {
   const { subscribe, set, update } = writable([
     { id: 0, previousAmount: 1, defaultAmount: 1, accumulatedAmount: 1, type: 'wood', name: 'Copse' },
     { id: 1, previousAmount: 2, defaultAmount: 2, accumulatedAmount: 2, type: 'wood', name: 'Grove' },
@@ -23,12 +32,29 @@ function activeSpaces() {
 
   return {
     subscribe,
-    addspace: (space) => update(activeSpaces => [...activeSpaces, space]),
-    accumulateSpaces: () => update(todos => todos.map(t => t.id === todo.id ? todo : t)),
-    removeTodo: (todo) => update(todos => todos.filter(t => !t.id === todo.id)),
+    addSpace: (space) => update(activeSpaces => [...activeSpaces, space]),
+    updateSpace: (space) => update(activeSpaces => activeSpaces.map(s => s.id === space.id ? space : s)),
+    accumulateSpaces: (down=false) => update(activeSpaces => {
+      down ? round.decrement() : round.increment();
+
+      return activeSpaces.map(s => {
+        if (down) {
+          s.accumulatedAmount -= s.defaultAmount;
+          if (s.accumulatedAmount < 0) s.accumulatedAmount = 0;
+        } else {
+          s.accumulatedAmount += s.defaultAmount;
+          if (s.accumulatedAmount > 14) s.accumulatedAmount = 14;
+        }
+        return s
+      })
+    }),
+    removeSpace: (id) => update(activeSpaces => activeSpaces.filter(s => s.id !== id)),
   };
 }
 
+export const activeSpaces = createActiveSpaces();
+
+// helpers for derived state
 const getIsHarvestRound = (currentRound) => {
   const harvestRounds = [4, 7, 9, 11, 13, 14];
 
@@ -51,16 +77,3 @@ const getStage = (currentRound) => {
   }
   return 0
 };
-
-export const round = writable(1);
-export const stage = derived(round, ($round) => getStage($round));
-export const isHarvestRound = derived(round, $round => getIsHarvestRound($round));
-export const message = derived([round, isHarvestRound], ([$round, $isHarvestRound]) => getMessage($round, $isHarvestRound));
-
-round.subscribe((r) => console.log('yes', r))
-
-// export const todos = createTodos();
-
-// export let sortedTodos = derived(todos, $todos => $todos.slice(0).sort((a, b) => a.votes - b.votes))
-
-
