@@ -1,31 +1,15 @@
 <script>
   import { activeSpaces } from '../store.js';
-  const randomOrderSpaces = [
 
-  ];
+  let dropdownActive = false;
 
+  const toggleDropdown = () => dropdownActive = !dropdownActive;
   const handleAccumulation = e => {
     e.shiftKey
       ? activeSpaces.accumulateSpaces(true)
       : activeSpaces.accumulateSpaces();
   };
-  const handleAddSpace = (type) => {
-    let model = randomOrderSpaces.find((sp) => (type === sp.type));
-    let space = Object.assign({}, model);
-    let count = 1;
-    if (space.type === 'stone') {
-      $activeSpaces.forEach((sp) => {
-        if (type === sp.type) {
-          count++
-        }
-      });
-    }
-    if (count > 1) space.name = 'Eastern Quarry';
-    if (count > 2) space.name = 'oops...'
-    space.id = id++;
-
-    activeSpaces.addSpace(space)
-  };
+  const handleAddSpace = (type) => activeSpaces.addSpace(type);
 </script>
 
 <div class="actions">
