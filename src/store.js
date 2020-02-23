@@ -52,7 +52,6 @@ function createActiveSpaces(initialSpaces) {
       return [...activeSpaces, space]
     }),
     accumulateSpaces: (down=false) => update(activeSpaces => {
-      const noop = () => {};
       const r = get(round);
 
       down ? round.decrement() : round.increment();
@@ -107,7 +106,7 @@ function getStage(currentRound) {
   return 0
 };
 
-// session storage function
+// session storage functions
 function retrieveFromStorage(key) {
   const previousState = JSON.parse(sessionStorage.getItem('apks-state'));
 

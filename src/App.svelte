@@ -18,11 +18,8 @@
   </header>
 
   <nav>
-
     <RoundInfo />
-
     <Actions />
-
   </nav>
 
   <Board />
