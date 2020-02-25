@@ -5,7 +5,7 @@
   import { crossfade } from 'svelte/transition';
   import Space from './Space.svelte';
 
-   // Send and receive messages for flip animation
+   // Send and receive methods for flip animation
   const [send, receive] = crossfade({
     duration: d => Math.sqrt(d * 200),
 
